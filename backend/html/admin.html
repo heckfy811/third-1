@@ -57,7 +57,40 @@
 
     <h2>Product List</h2>
     <div id="productList"></div>
-
+    <div id="chat" style="position: fixed; bottom: 0; right: 0; width: 300px; background: #f0f0f0; padding: 10px;">
+        <div id="messages" style="height: 200px; overflow-y: auto;"></div>
+        <input id="messageInput" type="text" placeholder="Введите сообщение" />
+        <button onclick="sendMessage()">Отправить</button>
+      </div>
+      
+      <script>
+        const ws = new WebSocket('ws://localhost:8081');
+      
+        ws.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          if (data.type === 'message') {
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML += `<p>${data.data.sender}: ${data.data.text}</p>`;
+          } else if (data.type === 'history') {
+            data.data.forEach((msg) => {
+              const messagesDiv = document.getElementById('messages');
+              messagesDiv.innerHTML += `<p>${msg.sender}: ${msg.text}</p>`;
+            });
+          }
+        };
+      
+        function sendMessage() {
+          const input = document.getElementById('messageInput');
+          const message = {
+            sender: 'Администратор',
+            text: input.value,
+            time: new Date().toLocaleTimeString(),
+          };
+          ws.send(JSON.stringify(message));
+          input.value = '';
+        }
+      </script>
+      
     <script>
         const addProductForm = document.getElementById('addProductForm');
         const productList = document.getElementById('productList');
