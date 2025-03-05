@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .form-group {
+            margin-bottom: 10px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 5px;
+        }
+        .btn {
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        .btn-delete {
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Admin Panel</h1>
+
+    <h2>Add Product</h2>
+    <form id="addProductForm">
+        <div class="form-group">
+            <label for="name">Name:</label>
+            <input type="text" id="name" placeholder="Product Name" required>
+        </div>
+        <div class="form-group">
+            <label for="price">Price:</label>
+            <input type="number" id="price" placeholder="Price" required>
+        </div>
+        <div class="form-group">
+            <label for="description">Description:</label>
+            <input type="text" id="description" placeholder="Description" required>
+        </div>
+        <div class="form-group">
+            <label for="categories">Categories (comma separated):</label>
+            <input type="text" id="categories" placeholder="Category 1, Category 2" required>
+        </div>
+        <button type="submit" class="btn">Add Product</button>
+    </form>
+
+    <h2>Product List</h2>
+    <div id="productList"></div>
+
+    <script>
+        const addProductForm = document.getElementById('addProductForm');
+        const productList = document.getElementById('productList');
+
+        const fetchProducts = () => {
+            fetch('http://localhost:8080/api/products')
+                .then(response => response.json())
+                .then(products => {
+                    productList.innerHTML = '';
+                    products.forEach(product => {
+                        const productCard = document.createElement('div');
+                        productCard.className = 'product-card';
+                        productCard.innerHTML = `
+                            <h3>${product.name}</h3>
+                            <p><strong>Price:</strong> $${product.price}</p>
+                            <p><strong>Description:</strong> ${product.description}</p>
+                            <p><strong>Categories:</strong> ${product.categories.join(', ')}</p>
+                            <button class="btn btn-delete" onclick="deleteProduct(${product.id})">Delete</button>
+                            <button class="btn" onclick="editProduct(${product.id})">Edit</button>
+                        `;
+                        productList.appendChild(productCard);
+                    });
+                });
+        };
+
+
+addProductForm.addEventListener('submit', event => {
+    event.preventDefault();
+    const product = {
+        name: document.getElementById('name').value,
+        price: parseFloat(document.getElementById('price').value),
+        description: document.getElementById('description').value,
+        categories: document.getElementById('categories').value.split(',').map(cat => cat.trim())
+    };
+    fetch('/api/products', { 
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(product)
+    })
+    .then(response => response.json())
+    .then(() => {
+        fetchProducts();
+        addProductForm.reset();
+    });
+});
+
+        const deleteProduct = (id) => {
+            fetch(`http://localhost:8080/api/products/${id}`, {
+                method: 'DELETE'
+            })
+            .then(() => {
+                fetchProducts();
+            });
+        };
+
+        const editProduct = async (id) => {
+            try {
+                const response = await fetch(`http://localhost:8080/api/products/${id}`);
+                if (!response.ok) {
+                    throw new Error('Product not found');
+                }
+                const product = await response.json();
+        
+                document.getElementById('name').value = product.name;
+                document.getElementById('price').value = product.price;
+                document.getElementById('description').value = product.description;
+                document.getElementById('categories').value = product.categories.join(', ');
+        
+                deleteProduct(id);
+            } catch (error) {
+                console.error('Error editing product:', error);
+            }
+        };
+
+        fetchProducts();
+    </script>
+</body>
+</html>
